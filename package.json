@@ -1,0 +1,12 @@
+{
+  "name": "refactoring-fowler",
+  "version": "1.0.0",
+  "description": "Examples from M. Fowler's Refactoring.",
+  "main": "index.js",
+  "author": "Louis Sanna <louis.sanna@gmail.com>",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^7.21.0"
+  }
+}

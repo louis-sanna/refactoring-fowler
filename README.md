@@ -1,0 +1,1 @@
+Refactoring katas taken from Martin Fowler's Refactoring.
