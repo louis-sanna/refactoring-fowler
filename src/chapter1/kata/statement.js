@@ -1,42 +1,86 @@
 module.exports = { statement };
 
 function statement(invoice, plays) {
-    let totalAmount = 0;
-    let volumeCredits = 0;
-    let result = `Statement for ${invoice.customer}\n`;
-    const format = new Intl.NumberFormat('en-US',
-        { style: 'currency', currency: 'USD',
-            minimumFractionDigits: 2 }).format;
+    const performancesData = buildPerformancesData();
+    const totalCredits = computeTotalCredits();
+    const totalPrice = computeTotalPrice();
+    return buildStatement(performancesData, totalCredits, totalPrice);
 
-    for (let perf of invoice.performances) {
-        const play = plays[perf.playID];
-        let thisAmount = 0;
+    function buildPerformancesData() {
+        const result = [];
+        for (let performance of invoice.performances) {
+            result.push({
+                performance,
+                play: getPlay(performance.playID),
+                price: computePerformancePrice(performance)
+            });
+        }
+        return result;
+    }
+
+    function getPlay(playID) {
+        return plays[playID];
+    }
+
+    function computePerformancePrice(performance) {
+        let result = 0;
+        const play = getPlay(performance.playID);
         switch (play.type) {
         case 'tragedy':
-            thisAmount = 40000;
-            if (perf.audience > 30) {
-                thisAmount += 1000 * (perf.audience - 30);
+            result = 40000;
+            if (performance.audience > 30) {
+                result += 1000 * (performance.audience - 30);
             }
             break;
         case 'comedy':
-            thisAmount = 30000;
-            if (perf.audience > 20) {
-                thisAmount += 10000 + 500 * (perf.audience - 20);
+            result = 30000;
+            if (performance.audience > 20) {
+                result += 10000 + 500 * (performance.audience - 20);
             }
-            thisAmount += 300 * perf.audience;
+            result += 300 * performance.audience;
             break;
         default:
             throw new Error(`unknown type: ${play.type}`);
         }
-        // add volume credits
-        volumeCredits += Math.max(perf.audience - 30, 0);
-        // add extra credit for every ten comedy attendees
-        if ('comedy' === play.type) volumeCredits += Math.floor(perf.audience / 5);
-        // print line for this order
-        result += ` ${play.name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-        totalAmount += thisAmount;
+        return result;
     }
-    result += `Amount owed is ${format(totalAmount/100)}\n`;
-    result += `You earned ${volumeCredits} credits\n`;
-    return result;
+
+    function computeTotalCredits() {
+        let result = 0;
+        for (let performance of invoice.performances) {
+            result += computeCredits(performance);
+        }
+        return result;
+    }
+
+    function computeCredits(performance) {
+        let result = 0;
+        result += Math.max(performance.audience - 30, 0);
+        if ('comedy' === getPlay(performance.playID).type) result += Math.floor(performance.audience / 5);
+        return result;
+    }
+
+    function computeTotalPrice() {
+        let result = 0;
+        for (let performance of invoice.performances) {
+            result += computePerformancePrice(performance);
+        }
+        return result;
+    }
+
+    function buildStatement(performancesData, totalCredits, totalPrice) {
+        let result = `Statement for ${invoice.customer}\n`;
+        for (let { performance, play, price } of performancesData) {
+            result += ` ${play.name}: ${formatPrice(price)} (${performance.audience} seats)\n`;
+        }
+        result += `Amount owed is ${formatPrice(totalPrice)}\n`;
+        result += `You earned ${totalCredits} credits\n`;
+        return result;
+    }
+
+    function formatPrice(price) {
+        return new Intl.NumberFormat('en-US',
+            { style: 'currency', currency: 'USD',
+                minimumFractionDigits: 2 }).format(price/100);
+    }
 }
